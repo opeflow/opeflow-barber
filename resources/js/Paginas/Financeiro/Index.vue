@@ -1,0 +1,60 @@
+<script setup>
+import { Head, Link, router, useForm } from '@inertiajs/vue3'
+import { computed, ref, watch } from 'vue'
+import LayoutPainel from '../../Componentes/LayoutPainel.vue'
+
+defineOptions({ layout: LayoutPainel })
+
+const props = defineProps({ data: String, fusoHorario: String, totalRecebido: String, totalDespesas: String, saldoDoDia: String, quantidadePagamentos: Number, quantidadeDespesas: Number, porForma: Array, pagamentos: Object, despesas: Object })
+const dataSelecionada = ref(props.data)
+const agoraLocal = new Intl.DateTimeFormat('en-CA', { timeZone: props.fusoHorario, year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date())
+const horaLocal = new Intl.DateTimeFormat('pt-BR', { timeZone: props.fusoHorario, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(new Date())
+const despesa = useForm({ descricao: '', categoria: 'Operacional', valor: '', data: agoraLocal, hora: horaLocal, chave_idempotencia: crypto.randomUUID() })
+watch(() => props.data, (data) => { despesa.data = data })
+const valoresPorForma = { dinheiro: 'Dinheiro', pix: 'Pix', credito: 'Crédito', debito: 'Débito', outro: 'Outro' }
+const formas = computed(() => props.porForma.map((item) => ({ ...item, nome: valoresPorForma[item.forma] ?? item.forma, percentual: Number(props.totalRecebido) ? Math.round(Number(item.total) / Number(props.totalRecebido) * 100) : 0 })))
+function filtrar() { router.get('/financeiro', { data: dataSelecionada.value }, { preserveState: true, replace: true }) }
+function moeda(valor) { return Number(valor).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) }
+function hora(data) { return new Intl.DateTimeFormat('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: props.fusoHorario }).format(new Date(data)) }
+function registrarDespesa() { despesa.post('/financeiro/despesas', { preserveScroll: true, onSuccess: () => { despesa.reset('descricao', 'valor'); despesa.chave_idempotencia = crypto.randomUUID() } }) }
+</script>
+
+<template>
+  <Head title="Financeiro" />
+  <main class="mx-auto max-w-6xl px-4 py-6 pb-24 sm:px-6 lg:px-8">
+    <header class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+      <div><p class="text-sm font-medium text-blue-600">Recebimentos registrados</p><h1 class="mt-1 text-2xl font-bold text-slate-950">Financeiro</h1><p class="mt-1 text-sm text-slate-500">Resumo de pagamentos por dia, no fuso da barbearia.</p></div>
+      <label class="text-sm font-medium text-slate-700">Data<input v-model="dataSelecionada" type="date" class="mt-1 min-h-11 w-full rounded-lg border-slate-300 sm:w-auto" @change="filtrar"></label>
+    </header>
+
+    <section class="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+      <article class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm"><p class="text-sm font-medium text-slate-500">Total recebido</p><p class="mt-2 text-3xl font-bold text-slate-950">{{ moeda(totalRecebido) }}</p><p class="mt-1 text-sm text-slate-500">Em {{ data.split('-').reverse().join('/') }}</p></article>
+      <article class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm"><p class="text-sm font-medium text-slate-500">Despesas registradas</p><p class="mt-2 text-3xl font-bold text-red-700">{{ moeda(totalDespesas) }}</p><p class="mt-1 text-sm text-slate-500">{{ quantidadeDespesas }} saída(s) no dia</p></article>
+      <article class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm"><p class="text-sm font-medium text-slate-500">Saldo operacional do dia</p><p class="mt-2 text-3xl font-bold" :class="Number(saldoDoDia) < 0 ? 'text-red-700' : 'text-slate-950'">{{ moeda(saldoDoDia) }}</p><p class="mt-1 text-sm text-slate-500">Recebimentos menos despesas registradas</p></article>
+      <article class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm"><p class="text-sm font-medium text-slate-500">Pagamentos registrados</p><p class="mt-2 text-3xl font-bold text-slate-950">{{ quantidadePagamentos }}</p><p class="mt-1 text-sm text-slate-500">Cada recebimento parcial é listado separadamente.</p></article>
+    </section>
+
+    <section class="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+      <form class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm" @submit.prevent="registrarDespesa">
+        <h2 class="font-semibold text-slate-950">Registrar despesa</h2>
+        <p class="mt-1 text-sm text-slate-500">Lance uma saída para compor o saldo operacional do dia.</p>
+        <label class="mt-4 block text-sm font-medium text-slate-700">Descrição<input v-model="despesa.descricao" required maxlength="160" placeholder="Ex.: compra de produtos" class="mt-1 min-h-11 w-full rounded-lg border-slate-300"></label>
+        <div class="mt-3 grid gap-3 sm:grid-cols-2"><label class="text-sm font-medium text-slate-700">Categoria<input v-model="despesa.categoria" required maxlength="60" placeholder="Operacional" class="mt-1 min-h-11 w-full rounded-lg border-slate-300"></label><label class="text-sm font-medium text-slate-700">Valor<input v-model="despesa.valor" required type="number" min="0.01" step="0.01" class="mt-1 min-h-11 w-full rounded-lg border-slate-300"></label></div>
+        <div class="mt-3 grid gap-3 sm:grid-cols-2"><label class="text-sm font-medium text-slate-700">Data<input v-model="despesa.data" required type="date" class="mt-1 min-h-11 w-full rounded-lg border-slate-300"></label><label class="text-sm font-medium text-slate-700">Hora<input v-model="despesa.hora" required type="time" class="mt-1 min-h-11 w-full rounded-lg border-slate-300"></label></div>
+        <p v-if="despesa.errors.valor || despesa.errors.data" class="mt-2 text-sm text-red-700">{{ despesa.errors.valor ?? despesa.errors.data }}</p>
+        <button :disabled="despesa.processing" class="mt-4 min-h-11 rounded-lg bg-blue-600 px-4 font-semibold text-white disabled:opacity-60">{{ despesa.processing ? 'Registrando…' : 'Registrar despesa' }}</button>
+      </form>
+      <article class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm"><div class="flex items-center justify-between"><h2 class="font-semibold text-slate-950">Despesas do dia</h2><span class="text-sm text-slate-500">{{ despesas.total }} registros</span></div><div v-if="despesas.data.length" class="mt-3 divide-y divide-slate-100"><div v-for="item in despesas.data" :key="item.id" class="flex items-center justify-between gap-3 py-3"><div class="min-w-0"><p class="truncate font-medium text-slate-900">{{ item.descricao }}</p><p class="text-sm text-slate-500">{{ item.categoria }} · {{ hora(item.movimentadaEm) }}</p></div><p class="shrink-0 font-semibold text-red-700">− {{ moeda(item.valor) }}</p></div></div><p v-else class="mt-4 rounded-lg bg-slate-50 p-5 text-center text-sm text-slate-500">Nenhuma despesa registrada nesta data.</p></article>
+    </section>
+
+    <section class="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]">
+      <article class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm"><h2 class="font-semibold text-slate-950">Por forma de pagamento</h2><div v-if="formas.length" class="mt-4 space-y-4"><div v-for="forma in formas" :key="forma.forma"><div class="flex justify-between gap-3 text-sm"><span class="font-medium text-slate-700">{{ forma.nome }}</span><span class="text-slate-600">{{ moeda(forma.total) }} · {{ forma.percentual }}%</span></div><div class="mt-2 h-2 overflow-hidden rounded-full bg-slate-100"><div class="h-full rounded-full bg-blue-600" :style="{ width: `${forma.percentual}%` }"></div></div></div></div><p v-else class="mt-4 text-sm text-slate-500">Nenhum pagamento registrado neste dia.</p></article>
+      <article class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm"><div class="flex items-center justify-between"><h2 class="font-semibold text-slate-950">Movimentações</h2><span class="text-sm text-slate-500">{{ pagamentos.total }} registros</span></div>
+        <div v-if="pagamentos.data.length" class="mt-4 divide-y divide-slate-100">
+          <div v-for="pagamento in pagamentos.data" :key="pagamento.id" class="flex items-center justify-between gap-3 py-3"><div class="min-w-0"><p class="truncate font-medium text-slate-900">{{ pagamento.cliente }}</p><p class="text-sm text-slate-500">{{ pagamento.profissional }} · {{ valoresPorForma[pagamento.forma] }} · {{ hora(pagamento.registradoEm) }}</p></div><p class="shrink-0 font-semibold text-slate-900">{{ moeda(pagamento.valor) }}</p></div>
+        </div><p v-else class="mt-4 rounded-lg bg-slate-50 p-5 text-center text-sm text-slate-500">Sem movimentações para esta data.</p>
+        <nav v-if="pagamentos.links.length > 3" aria-label="Paginação financeira" class="mt-4 flex flex-wrap gap-2"><Link v-for="(link, indice) in pagamentos.links" :key="indice" :href="link.url ?? ''" preserve-scroll class="rounded-lg border px-3 py-2 text-sm" :class="link.active ? 'border-blue-600 bg-blue-50 text-blue-700' : 'border-slate-200 text-slate-600'" v-html="link.label" /></nav>
+      </article>
+    </section>
+  </main>
+</template>

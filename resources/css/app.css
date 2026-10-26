@@ -1,0 +1,32 @@
+@import "tailwindcss";
+
+@theme {
+  --color-azul-primario: #2563eb;
+  --color-azul-escuro: #0f172a;
+  --color-preto-marca: #020617;
+  --color-prata: #cbd5e1;
+  --color-texto-auxiliar: #64748b;
+}
+
+:root {
+  --cor-primaria: #2563eb;
+  --cor-texto-primaria: #ffffff;
+  --cor-navegacao: #0f172a;
+  --cor-texto-navegacao: #ffffff;
+}
+
+@layer utilities {
+  .bg-blue-600 { background-color: var(--cor-primaria); color: var(--cor-texto-primaria); }
+  .hover\:bg-blue-700:hover { background-color: color-mix(in srgb, var(--cor-primaria), #000 14%); }
+  .text-blue-600, .text-blue-700 { color: var(--cor-primaria-link, var(--cor-primaria)); }
+  .border-blue-600 { border-color: var(--cor-primaria-link, var(--cor-primaria)); }
+  .border-blue-100 { border-color: color-mix(in srgb, var(--cor-primaria), #fff 76%); }
+  .bg-blue-50 { background-color: color-mix(in srgb, var(--cor-primaria), #fff 93%); }
+  .focus\:border-blue-600:focus { border-color: var(--cor-primaria); }
+  .focus\:ring-blue-600:focus { --tw-ring-color: var(--cor-primaria); }
+}
+
+@layer base {
+  body { @apply bg-slate-50 text-slate-900 antialiased; }
+  :focus-visible { @apply outline-2 outline-offset-2 outline-blue-600; }
+}
