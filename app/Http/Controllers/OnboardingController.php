@@ -7,6 +7,7 @@ use App\Http\Requests\CriarContaInicialRequest;
 use App\Models\Barbearia;
 use App\Models\Usuario;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
@@ -36,7 +37,7 @@ class OnboardingController extends Controller
             ]);
         });
 
-        auth()->login($usuario);
+        Auth::guard('web')->login($usuario);
         $request->session()->regenerate();
 
         return to_route('inicio');

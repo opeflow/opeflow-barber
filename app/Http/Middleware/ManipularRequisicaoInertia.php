@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\Usuario;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -19,15 +20,15 @@ class ManipularRequisicaoInertia extends Middleware
         return [
             ...parent::share($request),
             'nomeDoProduto' => config('app.name'),
-            'usuarioPainel' => fn (): ?array => $request->user() ? [
-                'nome' => $request->user()->nome,
-                'papel' => $request->user()->papel->value,
-                'barbearia' => $request->user()->barbearia->nome,
-                'podeGerenciarConfiguracoes' => $request->user()->papel->podeGerenciarConfiguracoes(),
-                'podeGerenciarEquipe' => $request->user()->papel->podeGerenciarEquipe(),
-                'logoUrl' => $request->user()->barbearia->logo_path ? route('barbearia.logo') : null,
-                'corPrimaria' => $request->user()->barbearia->cor_primaria,
-                'corNavegacao' => $request->user()->barbearia->cor_navegacao,
+            'usuarioPainel' => fn (): ?array => $request->user('web') instanceof Usuario ? [
+                'nome' => $request->user('web')->nome,
+                'papel' => $request->user('web')->papel->value,
+                'barbearia' => $request->user('web')->barbearia->nome,
+                'podeGerenciarConfiguracoes' => $request->user('web')->papel->podeGerenciarConfiguracoes(),
+                'podeGerenciarEquipe' => $request->user('web')->papel->podeGerenciarEquipe(),
+                'logoUrl' => $request->user('web')->barbearia->logo_path ? route('barbearia.logo') : null,
+                'corPrimaria' => $request->user('web')->barbearia->cor_primaria,
+                'corNavegacao' => $request->user('web')->barbearia->cor_navegacao,
             ] : null,
             'flash' => [
                 'sucesso' => fn () => $request->session()->get('sucesso'),

@@ -25,7 +25,7 @@ class EntrarRequest extends FormRequest
     {
         $credenciais = $this->only('email', 'senha');
 
-        if (! Auth::attempt(['email' => $credenciais['email'], 'password' => $credenciais['senha'], 'ativo' => true], $this->boolean('lembrar'))) {
+        if (! Auth::guard('web')->attempt(['email' => $credenciais['email'], 'password' => $credenciais['senha'], 'ativo' => true], $this->boolean('lembrar'))) {
             throw ValidationException::withMessages([
                 'email' => 'As credenciais informadas não conferem.',
             ]);

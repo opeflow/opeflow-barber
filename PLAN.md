@@ -323,7 +323,8 @@ Limites do primeiro lançamento offline:
 - **Experiência de uso refinada:** layout interno responsivo compartilhado com navegação lateral no desktop e inferior no celular, além de notificações toast acessíveis para sucesso, falhas e avisos.
 - **Equipe individual:** proprietários/gerentes podem gerar convites de uso único para gerente, recepção ou profissional; profissional pode ser vinculado a uma única conta. Convidado define senha própria e ativa o acesso. Acesso pode ser revogado/reativado; convite pendente expirado pode ser renovado. E-mail automático ainda depende da integração de envio.
 - **Permissões iniciais no servidor:** gerenciamento de equipe/configurações restrito a proprietário/gerente; resumo financeiro restrito a proprietário/gerente/recepção; profissional vê somente agenda e atendimentos da fila vinculados ao próprio cadastro, não consulta a lista de clientes nem gerencia agendamentos/fila. Pode iniciar/concluir seu atendimento e registrar pagamento apenas nele enquanto estiver em andamento. Matriz completa por tela/ação ainda precisa ser refinada.
-- **Guias de uso criados:** instruções para proprietário, equipe e clientes em `docs/`, identificando o que já está disponível e o que ainda não foi lançado. O agendamento público e convites de equipe estão disponíveis; portal autenticado de clientes e consulta/cancelamento online permanecem pendentes.
+- **Guias de uso criados:** instruções para proprietário, equipe, clientes e logins de desenvolvimento em `docs/`, identificando o que já está disponível e o que ainda não foi lançado. A autenticação do portal de demonstração do cliente permite consulta somente leitura dos próprios agendamentos; cadastro, recuperação de senha, cancelamento e reagendamento continuam pendentes.
+- **Acessos de desenvolvimento:** `DesenvolvimentoSeeder` cria, de forma idempotente e somente em `local`/`testing`, logins de proprietário e profissional pela guarda de equipe, conta de cliente vinculada e administrador global isolado. O painel global é somente uma base de autenticação; logs, integrações e gestão de segredos continuam pendentes.
 - A previsão inicial da fila é indicativa e distribuída pela duração dos itens ativos e pelo número de profissionais habilitados para o serviço; deve ser refinada com disponibilidade individual e reservas futuras.
 - Docker, Laravel, Vue/Inertia, PostgreSQL e Redis.
 - Ambiente integralmente conteinerizado, inclusive instalação de dependências PHP/Node, execução do Vite, worker Horizon e agendador Laravel. PostgreSQL e Redis operam somente na rede interna dos containers.
@@ -342,7 +343,7 @@ Limites do primeiro lançamento offline:
 - Identidade visual personalizável por barbearia, shell de navegação responsivo e feedback toast acessível.
 - Guias operacionais separados por público e atualizados junto a alterações de rotas, permissões e fluxos.
 
-**Ainda pendente nesta fase:** matriz completa de permissões por função, recuperação de senha e portal/login do cliente. A agenda individual básica do profissional foi implementada como consulta dos próprios horários; consultas, cancelamentos e reagendamentos pelo próprio cliente ainda dependem do portal.
+**Ainda pendente nesta fase:** matriz completa de permissões por função, recuperação de senha, cadastro público de conta do cliente, cancelamento e reagendamento pelo portal. A agenda individual básica do profissional foi implementada como consulta dos próprios horários; conta demo do cliente oferece apenas consulta dos próprios agendamentos.
 
 **Escopo já entregue nesta fase:** registro de múltiplos pagamentos por atendimento, despesas categorizadas, resumo diário e relatórios iniciais por período/profissional/serviço. Ainda faltam fechamento de caixa, estornos auditáveis e comparações analíticas avançadas.
 
@@ -395,7 +396,7 @@ Esses itens devem ser reavaliados após validar a rotina de agendamento, fila e 
 
 ## Painel administrativo global da plataforma
 
-Além do painel de cada barbearia, o SaaS terá uma área `/admin` separada, destinada exclusivamente a administradores da plataforma e ao suporte operacional.
+Além do painel de cada barbearia, o SaaS terá uma área `/admin` separada, destinada exclusivamente a administradores da plataforma e ao suporte operacional. A fundação de autenticação da conta global e a tela inicial de desenvolvimento foram criadas; o acesso ainda é bloqueado fora de `local`/`testing` e não representa o painel operacional completo.
 
 ### Funcionalidades
 
@@ -408,9 +409,9 @@ Além do painel de cada barbearia, o SaaS terá uma área `/admin` separada, des
 
 ### Segurança e entidades
 
-O acesso administrativo é global, não pertence a uma barbearia e não deve herdar nem aceitar `barbearia_id` da sessão da equipe. Usar autorização global dedicada, autenticação reforçada, proteção CSRF, limitação de requisições e auditoria. Segredos usam criptografia em repouso do Laravel; em produção, preferir cofre de segredos gerenciado.
+O acesso administrativo é global, não pertence a uma barbearia e não deve herdar nem aceitar `barbearia_id` da sessão da equipe. Usa guarda e tabela próprias para autenticação demo, proteção CSRF e limitação de tentativas; o painel e o login são restritos a `local`/`testing` até haver autenticação reforçada, auditoria e autorização global de produção. Segredos usam criptografia em repouso do Laravel; em produção, preferir cofre de segredos gerenciado.
 
-Entidades previstas: `AdministradorDaPlataforma` (ou papel global equivalente), `IntegracaoDaPlataforma`, `CredencialDeIntegracao` e `EventoDeAuditoria`. Segredos e dados pessoais devem ser excluídos de logs, exceções, dumps e dados de teste.
+Entidades: `AdministradorDaPlataforma` (guard/tabela de autenticação demo implementados), `IntegracaoDaPlataforma`, `CredencialDeIntegracao` e `EventoDeAuditoria` (itens futuros). Segredos e dados pessoais devem ser excluídos de logs, exceções, dumps e dados de teste.
 
 ### Critérios de aceite
 

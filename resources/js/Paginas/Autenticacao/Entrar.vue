@@ -1,6 +1,8 @@
 <script setup>
 import { Head, Link, useForm } from '@inertiajs/vue3'
 
+defineProps({ mostrarCredenciaisDeDesenvolvimento: Boolean })
+
 const formulario = useForm({ email: '', senha: '', lembrar: false })
 
 function entrar() {
@@ -15,6 +17,8 @@ function entrar() {
       <p class="text-sm font-semibold text-blue-600">Opeflow Barber</p>
       <h1 class="mt-2 text-2xl font-bold text-slate-950">Acesse sua barbearia</h1>
       <p class="mt-2 text-sm text-slate-500">Use seus dados para administrar agenda, fila e clientes.</p>
+
+      <aside v-if="mostrarCredenciaisDeDesenvolvimento" class="mt-4 rounded-lg border border-blue-100 bg-blue-50 p-3 text-xs text-blue-950"><p class="font-semibold">Contas de demonstração (somente desenvolvimento)</p><p class="mt-1">Proprietário: dono@opeflow.local</p><p>Barbeiro: barbeiro@opeflow.local</p><p>Senha de ambas: OpeflowDev2026!</p></aside>
 
       <label class="mt-6 block text-sm font-medium text-slate-700">
         E-mail
@@ -32,6 +36,7 @@ function entrar() {
 
       <button :disabled="formulario.processing" class="mt-6 min-h-11 w-full rounded-lg bg-blue-600 px-4 font-semibold text-white transition hover:bg-blue-700 disabled:opacity-60">Entrar</button>
       <p class="mt-5 text-center text-sm text-slate-600">Ainda não usa o Opeflow? <Link href="/criar-conta" class="font-semibold text-blue-600">Criar conta</Link></p>
+      <p class="mt-3 text-center text-sm"><Link href="/cliente/entrar" class="font-semibold text-slate-600 underline">Acesso do cliente</Link></p>
     </form>
   </main>
 </template>

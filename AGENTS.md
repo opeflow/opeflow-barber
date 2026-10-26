@@ -106,6 +106,8 @@ Use notificações toast globais para sucesso, falhas de validação e avisos ap
 - Não permita que um papel local se atribua a proprietário. Atribua profissionais a no máximo uma conta individual e valide o vínculo na mesma barbearia.
 - Aplique as permissões também no servidor. Ocultar item de navegação não substitui autorização em rotas e ações.
 - Conta profissional deve estar vinculada a um profissional ativo: consulte somente seus agendamentos e itens atribuídos na fila; não entregue lista completa de clientes nem relatórios financeiros. Ações no atendimento e pagamentos devem validar no servidor o vínculo com esse profissional.
+- Contas de cliente e de administrador global não podem ser representadas como `Usuario` de barbearia: use provedores/guardas separados. Conta de cliente só acessa dados do `Cliente` e da barbearia vinculados; administrador global não possui `barbearia_id`.
+- Seeds com credenciais padrão são exclusivos de `local`/`testing`, idempotentes e nunca devem rodar em produção. Documente credenciais de demonstração, mantenha senhas com hash e não trate o painel demo como acesso administrativo de produção.
 
 ## Estados principais
 

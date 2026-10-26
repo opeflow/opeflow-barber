@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Controllers\AcessoDeAdministradorController;
+use App\Http\Controllers\AcessoDeClienteController;
 use App\Http\Controllers\AgendaController;
 use App\Http\Controllers\AgendamentoPublicoController;
 use App\Http\Controllers\AutenticacaoController;
@@ -7,14 +9,14 @@ use App\Http\Controllers\CadastroOperacionalController;
 use App\Http\Controllers\ClientesController;
 use App\Http\Controllers\EquipeController;
 use App\Http\Controllers\FilaController;
-use App\Http\Controllers\LembretesController;
 use App\Http\Controllers\FinanceiroController;
+use App\Http\Controllers\LembretesController;
 use App\Http\Controllers\OnboardingController;
 use App\Http\Controllers\PainelController;
 use App\Http\Controllers\RelatoriosController;
 use Illuminate\Support\Facades\Route;
 
-Route::middleware('guest')->group(function (): void {
+Route::middleware('guest:web')->group(function (): void {
     Route::get('/criar-conta', [OnboardingController::class, 'formulario'])->name('criar-conta');
     Route::post('/criar-conta', [OnboardingController::class, 'criar'])->name('registrar-conta');
     Route::get('/entrar', [AutenticacaoController::class, 'formulario'])->name('entrar');
@@ -28,7 +30,25 @@ Route::get('/convites/equipe', [EquipeController::class, 'formularioDeAceite'])-
 Route::post('/convites/equipe/validar', [EquipeController::class, 'validarConvite'])->middleware('throttle:10,1')->name('equipe.validar-convite');
 Route::post('/convites/equipe/ativar', [EquipeController::class, 'aceitar'])->middleware('throttle:10,1')->name('equipe.aceitar.salvar');
 
-Route::middleware('auth')->group(function (): void {
+Route::prefix('cliente')->name('cliente.')->group(function (): void {
+    Route::get('/entrar', [AcessoDeClienteController::class, 'formulario'])->middleware('throttle:30,1')->name('entrar');
+    Route::post('/entrar', [AcessoDeClienteController::class, 'entrar'])->middleware('throttle:5,1')->name('autenticar');
+    Route::middleware('auth:cliente')->group(function (): void {
+        Route::get('/', [AcessoDeClienteController::class, 'inicio'])->name('inicio');
+        Route::post('/sair', [AcessoDeClienteController::class, 'sair'])->name('sair');
+    });
+});
+
+Route::prefix('admin')->name('admin.')->group(function (): void {
+    Route::get('/entrar', [AcessoDeAdministradorController::class, 'formulario'])->middleware('throttle:30,1')->name('entrar');
+    Route::post('/entrar', [AcessoDeAdministradorController::class, 'entrar'])->middleware('throttle:5,1')->name('autenticar');
+    Route::middleware('auth:administrador')->group(function (): void {
+        Route::get('/', [AcessoDeAdministradorController::class, 'inicio'])->name('inicio');
+        Route::post('/sair', [AcessoDeAdministradorController::class, 'sair'])->name('sair');
+    });
+});
+
+Route::middleware('auth:web')->group(function (): void {
     Route::get('/', [PainelController::class, 'exibir'])->name('inicio');
     Route::post('/sair', [AutenticacaoController::class, 'sair'])->name('sair');
     Route::get('/barbearia/logo', [CadastroOperacionalController::class, 'exibirLogo'])->name('barbearia.logo');
