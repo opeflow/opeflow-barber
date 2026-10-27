@@ -4,12 +4,15 @@ use App\Http\Controllers\AcessoDeAdministradorController;
 use App\Http\Controllers\AcessoDeClienteController;
 use App\Http\Controllers\AgendaController;
 use App\Http\Controllers\AgendamentoPublicoController;
+use App\Http\Controllers\AuditoriaAdministrativaController;
 use App\Http\Controllers\AutenticacaoController;
+use App\Http\Controllers\AutenticacaoMultifatorAdministrativaController;
 use App\Http\Controllers\CadastroOperacionalController;
 use App\Http\Controllers\ClientesController;
 use App\Http\Controllers\EquipeController;
 use App\Http\Controllers\FilaController;
 use App\Http\Controllers\FinanceiroController;
+use App\Http\Controllers\IntegracoesDaPlataformaController;
 use App\Http\Controllers\LembretesController;
 use App\Http\Controllers\OnboardingController;
 use App\Http\Controllers\PainelController;
@@ -33,18 +36,39 @@ Route::post('/convites/equipe/ativar', [EquipeController::class, 'aceitar'])->mi
 Route::prefix('cliente')->name('cliente.')->group(function (): void {
     Route::get('/entrar', [AcessoDeClienteController::class, 'formulario'])->middleware('throttle:30,1')->name('entrar');
     Route::post('/entrar', [AcessoDeClienteController::class, 'entrar'])->middleware('throttle:5,1')->name('autenticar');
+    Route::get('/cadastro', [AcessoDeClienteController::class, 'formularioDeCadastro'])->middleware('throttle:30,1')->name('cadastro');
+    Route::post('/cadastro', [AcessoDeClienteController::class, 'cadastrar'])->middleware('throttle:3,10')->name('cadastro.salvar');
+    Route::get('/verificar-email/{conta}/{hash}', [AcessoDeClienteController::class, 'verificarEmail'])->middleware(['signed', 'throttle:10,1'])->name('verificar-email');
+    Route::get('/esqueci-senha', [AcessoDeClienteController::class, 'formularioDeRedefinicao'])->middleware('throttle:30,1')->name('esqueci-senha');
+    Route::post('/esqueci-senha', [AcessoDeClienteController::class, 'solicitarRedefinicao'])->middleware('throttle:3,1')->name('esqueci-senha.solicitar');
+    Route::get('/redefinir-senha', [AcessoDeClienteController::class, 'formularioDeNovaSenha'])->name('redefinir-senha');
+    Route::post('/redefinir-senha', [AcessoDeClienteController::class, 'redefinirSenha'])->middleware('throttle:5,1')->name('redefinir-senha.salvar');
     Route::middleware('auth:cliente')->group(function (): void {
         Route::get('/', [AcessoDeClienteController::class, 'inicio'])->name('inicio');
+        Route::delete('/agendamentos/{agendamento}', [AcessoDeClienteController::class, 'cancelar'])->name('agendamentos.cancelar');
+        Route::post('/agendamentos/{agendamento}/reagendar', [AcessoDeClienteController::class, 'reagendar'])->middleware('throttle:10,1')->name('agendamentos.reagendar');
         Route::post('/sair', [AcessoDeClienteController::class, 'sair'])->name('sair');
     });
 });
 
-Route::prefix('admin')->name('admin.')->group(function (): void {
+Route::prefix('admin')->name('admin.')->middleware('administracao.global')->group(function (): void {
     Route::get('/entrar', [AcessoDeAdministradorController::class, 'formulario'])->middleware('throttle:30,1')->name('entrar');
     Route::post('/entrar', [AcessoDeAdministradorController::class, 'entrar'])->middleware('throttle:5,1')->name('autenticar');
     Route::middleware('auth:administrador')->group(function (): void {
-        Route::get('/', [AcessoDeAdministradorController::class, 'inicio'])->name('inicio');
+        Route::get('/mfa/configurar', [AutenticacaoMultifatorAdministrativaController::class, 'configurar'])->middleware('throttle:10,1')->name('mfa.configurar');
+        Route::post('/mfa/configurar', [AutenticacaoMultifatorAdministrativaController::class, 'confirmarConfiguracao'])->middleware('throttle:5,1')->name('mfa.configurar.confirmar');
+        Route::get('/mfa/codigos-recuperacao', [AutenticacaoMultifatorAdministrativaController::class, 'codigosDeRecuperacao'])->name('mfa.codigos');
+        Route::get('/mfa/verificar', [AutenticacaoMultifatorAdministrativaController::class, 'verificarFormulario'])->middleware('throttle:10,1')->name('mfa.verificar');
+        Route::post('/mfa/verificar', [AutenticacaoMultifatorAdministrativaController::class, 'verificar'])->middleware('throttle:5,1')->name('mfa.verificar.confirmar');
         Route::post('/sair', [AcessoDeAdministradorController::class, 'sair'])->name('sair');
+        Route::middleware('administracao.mfa')->group(function (): void {
+            Route::get('/', [AcessoDeAdministradorController::class, 'inicio'])->name('inicio');
+            Route::get('/auditoria', [AuditoriaAdministrativaController::class, 'exibir'])->middleware('throttle:30,1')->name('auditoria');
+            Route::get('/integracoes', [IntegracoesDaPlataformaController::class, 'exibir'])->name('integracoes');
+            Route::post('/integracoes', [IntegracoesDaPlataformaController::class, 'criar'])->middleware('throttle:10,1')->name('integracoes.criar');
+            Route::put('/integracoes/{integracao}', [IntegracoesDaPlataformaController::class, 'atualizar'])->middleware('throttle:10,1')->name('integracoes.atualizar');
+            Route::post('/integracoes/{integracao}/revogar', [IntegracoesDaPlataformaController::class, 'revogar'])->middleware('throttle:10,1')->name('integracoes.revogar');
+        });
     });
 });
 
@@ -54,6 +78,8 @@ Route::middleware('auth:web')->group(function (): void {
     Route::get('/barbearia/logo', [CadastroOperacionalController::class, 'exibirLogo'])->name('barbearia.logo');
 
     Route::get('/clientes', [ClientesController::class, 'exibir'])->name('clientes.exibir');
+    Route::get('/clientes/{cliente}', [ClientesController::class, 'ficha'])->name('clientes.ficha');
+    Route::get('/clientes/{cliente}/beneficios', [ClientesController::class, 'beneficios'])->name('clientes.beneficios');
     Route::post('/clientes', [ClientesController::class, 'criar'])->name('clientes.criar');
     Route::post('/clientes/{cliente}/retirar-consentimento', [ClientesController::class, 'retirarConsentimento'])->name('clientes.retirar-consentimento');
 
@@ -67,7 +93,10 @@ Route::middleware('auth:web')->group(function (): void {
     Route::post('/fila/{item}/concluir', [FilaController::class, 'concluirAtendimento'])->name('fila.concluir');
     Route::post('/fila/{item}/desistir', [FilaController::class, 'desistir'])->name('fila.desistir');
     Route::post('/atendimentos/{atendimento}/pagamentos', [FinanceiroController::class, 'registrarPagamento'])->name('pagamentos.registrar');
+    Route::post('/financeiro/pagamentos/{pagamento}/estornos', [FinanceiroController::class, 'registrarEstorno'])->name('pagamentos.estornar');
     Route::get('/financeiro', [FinanceiroController::class, 'exibir'])->name('financeiro.exibir');
+    Route::post('/financeiro/fechamentos', [FinanceiroController::class, 'fecharCaixa'])->name('financeiro.fechamentos.criar');
+    Route::post('/financeiro/fechamentos/{fechamento}/reabrir', [FinanceiroController::class, 'reabrirCaixa'])->name('financeiro.fechamentos.reabrir');
     Route::post('/financeiro/despesas', [FinanceiroController::class, 'registrarDespesa'])->name('financeiro.despesas.registrar');
     Route::get('/relatorios', [RelatoriosController::class, 'exibir'])->name('relatorios.exibir');
     Route::get('/relatorios/exportar', [RelatoriosController::class, 'exportar'])->name('relatorios.exportar');

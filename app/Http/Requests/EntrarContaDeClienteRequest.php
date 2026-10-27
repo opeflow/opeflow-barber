@@ -24,6 +24,11 @@ class EntrarContaDeClienteRequest extends FormRequest
             throw ValidationException::withMessages(['email' => 'As credenciais informadas não conferem.']);
         }
 
+        if (! Auth::guard('cliente')->user()->hasVerifiedEmail()) {
+            Auth::guard('cliente')->logout();
+            throw ValidationException::withMessages(['email' => 'Confirme seu e-mail antes de entrar no portal.']);
+        }
+
         $this->session()->regenerate();
     }
 }

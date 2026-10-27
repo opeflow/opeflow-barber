@@ -92,11 +92,13 @@ Use notificações toast globais para sucesso, falhas de validação e avisos ap
 9. Use transações de banco nos fluxos que alterem vaga, posição de fila, benefício e atendimento simultaneamente.
 10. O MVP não integra a API do WhatsApp: links `wa.me` podem abrir mensagem pré-preenchida para envio humano, e o sistema só registra confirmação manual do operador (nunca alegue entrega automática).
 11. Lembretes de WhatsApp são criados somente após consentimento opcional e explícito do cliente, que deve poder ser retirado; retirar consentimento cancela lembretes pendentes. Abrir o aplicativo não altera estado. Registre usuário e horário quando o operador confirmar o envio.
-12. Lançamentos de despesa são isolados por barbearia, idempotentes por chave e não devem ser apagados ou alterados sem fluxo explícito de estorno auditável.
-13. Relatórios e exportações devem autorizar no servidor, limitar consultas ao contexto da barbearia e prevenir injeção de fórmulas em células CSV originadas de texto do usuário.
-14. Benefícios devem ser emitidos uma única vez por atendimento originador e regra; a emissão ocorre na mesma transação de conclusão, usa janela de validade explícita e nunca pode ser resgatada fora da barbearia/cliente vinculados.
-15. Benefícios disponíveis expirados devem ser marcados por tarefa agendada idempotente; estados utilizados, reservados ou cancelados nunca podem ser alterados pela rotina de expiração.
-16. Resgate público de benefício exige código assinado válido, telefone do cliente vinculado, serviço beneficiado correto e reserva dentro da janela UTC; cancelar/faltar libera o crédito se ainda válido, e marcar como atendido consome-o transacionalmente.
+12. Lançamentos de despesa e pagamentos são isolados por barbearia, idempotentes por chave e não devem ser apagados ou alterados. Correções de recebimento usam estornos auditáveis, restritos a proprietário/gerente, limitados ao saldo não estornado e persistidos sem alterar o pagamento original.
+13. Estorno no MVP é um registro interno de auditoria e ajuste dos relatórios; não movimenta dinheiro nem chama adquirente, banco ou provedor de pagamento. A interface e os guias devem deixar essa limitação explícita.
+14. Fechamentos de caixa guardam snapshots imutáveis por versão. Reaberturas são eventos separados com responsável e motivo. Toda escrita financeira deve bloquear a linha da barbearia antes de consultar o estado do fechamento; lançamentos em data fechada só são permitidos após reabertura auditada.
+15. Relatórios e exportações devem autorizar no servidor, limitar consultas ao contexto da barbearia e prevenir injeção de fórmulas em células CSV originadas de texto do usuário.
+16. Benefícios devem ser emitidos uma única vez por atendimento originador e regra; a emissão ocorre na mesma transação de conclusão, usa janela de validade explícita e nunca pode ser resgatada fora da barbearia/cliente vinculados.
+17. Benefícios disponíveis expirados devem ser marcados por tarefa agendada idempotente; estados utilizados, reservados ou cancelados nunca podem ser alterados pela rotina de expiração.
+18. Resgate público de benefício exige código assinado válido, telefone do cliente vinculado, serviço beneficiado correto e reserva dentro da janela UTC; cancelar/faltar libera o crédito se ainda válido, e marcar como atendido consome-o transacionalmente.
 
 ### Acessos de equipe
 
@@ -106,7 +108,15 @@ Use notificações toast globais para sucesso, falhas de validação e avisos ap
 - Não permita que um papel local se atribua a proprietário. Atribua profissionais a no máximo uma conta individual e valide o vínculo na mesma barbearia.
 - Aplique as permissões também no servidor. Ocultar item de navegação não substitui autorização em rotas e ações.
 - Conta profissional deve estar vinculada a um profissional ativo: consulte somente seus agendamentos e itens atribuídos na fila; não entregue lista completa de clientes nem relatórios financeiros. Ações no atendimento e pagamentos devem validar no servidor o vínculo com esse profissional.
+- A ficha completa de clientes é restrita aos papéis autorizados a consultar clientes; nela exiba somente dados necessários à operação e históricos da mesma barbearia. Não inclua pagamentos ou valores sem uma permissão financeira específica.
 - Contas de cliente e de administrador global não podem ser representadas como `Usuario` de barbearia: use provedores/guardas separados. Conta de cliente só acessa dados do `Cliente` e da barbearia vinculados; administrador global não possui `barbearia_id`.
+- A conta de cliente em produção exige verificação de posse do e-mail já associado ao cadastro da barbearia; telefone, nome ou código público de reserva não são prova de identidade. Links de verificação são assinados, expiram e não devem incluir dados pessoais desnecessários.
+- Redefinição de senha deve responder sem revelar se uma conta existe; tokens aleatórios ficam armazenados somente como hash, expiram, são de uso único e seguem no fragmento da URL para serem enviados ao servidor somente no corpo HTTPS.
+- Cache offline deve ser minimizado, identificado como possivelmente desatualizado e removido no logout; não cachear respostas autenticadas no service worker nem oferecer mutações de agenda/fila/financeiro/mensagens offline.
+- O painel global permanece desabilitado em produção até autenticação reforçada (MFA), auditoria administrativa e autorização de produção; não contornar a restrição para expor telas globais.
+- A habilitação administrativa em produção exige `ADMINISTRACAO_GLOBAL_HABILITADA=true`, MFA TOTP confirmado e auditoria funcional. O padrão deve continuar desligado. Segredo TOTP e credenciais de integração ficam cifrados com a chave de aplicação; códigos de recuperação são armazenados somente como hash e exibidos uma única vez.
+- Eventos de auditoria devem ser estruturados, paginados, filtráveis e redigidos. Não oferecer leitura arbitrária de arquivos de log; guardar descrição/metadata permitida, nunca credencial, senha, e-mail, telefone ou conteúdo de mensagens. Mutação administrativa e respectivo evento de auditoria devem ser atômicos.
+- A gestão de integração no MVP pode cadastrar, mascarar, rotacionar e revogar credenciais, mas não deve alegar conectividade/teste enquanto o conector não existir. WhatsApp continua sem integração ativa autorizada.
 - Seeds com credenciais padrão são exclusivos de `local`/`testing`, idempotentes e nunca devem rodar em produção. Documente credenciais de demonstração, mantenha senhas com hash e não trate o painel demo como acesso administrativo de produção.
 
 ## Estados principais
@@ -136,6 +146,8 @@ Reservas futuras e clientes em fila devem usar a mesma fonte de disponibilidade.
 - O link público de agendamento é identificado pelo slug da barbearia. Nunca aceite `barbearia_id` como autoridade da requisição; valide serviço e profissional dentro da empresa vinculada ao slug.
 - Limite requisições de consulta/reserva e use chave de idempotência única por barbearia para impedir reservas duplicadas. Revalide a disponibilidade dentro de transação antes de gravar.
 - Agendamento público não implica portal autenticado do cliente: não afirme que consulta, cancelamento ou reagendamento autônomos existem até serem implementados.
+- Reagendamento autenticado do cliente mantém o agendamento anterior com status `reagendado` e cria um novo registro ligado por `agendamento_origem_id`; confirme disponibilidade e validade do benefício dentro da mesma transação, mantendo serviço/profissional e cancelando/recriando lembretes idempotentemente.
+- Ações autenticadas do cliente devem sempre limitar a consulta por `barbearia_id` e `cliente_id` vinculados à conta. Cancelamento só vale para agendamento próprio, futuro e ainda não iniciado; deve ser transacional, liberar benefício reservado ainda válido (ou expirá-lo se vencido) e cancelar lembretes pendentes. Repetição ou tentativa sobre reserva alheia/encerrada não pode alterar estado.
 
 - A equipe pode copiar/compartilhar o link público da barbearia por qualquer canal. O link público identifica a barbearia por slug.
 - Mensagens pré-preenchidas abrem no WhatsApp para revisão e envio por uma pessoa. Não há API, webhook, envio automático, confirmação de entrega nem campanha no MVP.
@@ -146,6 +158,7 @@ Reservas futuras e clientes em fila devem usar a mesma fonte de disponibilidade.
 ## Qualidade e validação
 
 - Escreva testes de feature para os fluxos de agendamento, fila, benefício e financeiro.
+- Teste autorização e limite monetário dos estornos, idempotência e impacto líquido em relatórios e exportações.
 - Escreva testes unitários para cálculo de disponibilidade, seleção de fila e validade de benefícios.
 - Use Form Requests para validação de entrada e Policies para autorização.
 - Não exponha credenciais, tokens, telefones reais ou dados pessoais em logs e testes.

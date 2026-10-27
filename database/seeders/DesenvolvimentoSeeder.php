@@ -12,6 +12,7 @@ use App\Models\HorarioDeTrabalho;
 use App\Models\Profissional;
 use App\Models\Servico;
 use App\Models\Usuario;
+use Carbon\CarbonImmutable;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 
@@ -64,7 +65,7 @@ class DesenvolvimentoSeeder extends Seeder
 
             ContaDeCliente::updateOrCreate(
                 ['email' => 'cliente@opeflow.local'],
-                ['barbearia_id' => $barbearia->id, 'cliente_id' => $cliente->id, 'nome' => $cliente->nome, 'senha' => 'OpeflowDev2026!', 'ativo' => true],
+                ['barbearia_id' => $barbearia->id, 'cliente_id' => $cliente->id, 'nome' => $cliente->nome, 'senha' => 'OpeflowDev2026!', 'ativo' => true, 'email_verified_at' => now()],
             );
 
             AdministradorDaPlataforma::updateOrCreate(
@@ -72,7 +73,7 @@ class DesenvolvimentoSeeder extends Seeder
                 ['nome' => 'Administrador Demonstração', 'senha' => 'OpeflowDev2026!', 'ativo' => true],
             );
 
-            $inicio = now($barbearia->fuso_horario)->addDays(2)->setTime(14, 0);
+            $inicio = CarbonImmutable::now($barbearia->fuso_horario)->addDays(2)->setTime(14, 0);
             Agendamento::updateOrCreate(
                 ['barbearia_id' => $barbearia->id, 'chave_idempotencia_publica' => 'e0a1df5d-4c8d-4f82-a24c-fc3364cc6d12'],
                 ['cliente_id' => $cliente->id, 'profissional_id' => $profissional->id, 'servico_id' => $servico->id, 'inicio_em' => $inicio->utc(), 'fim_em' => $inicio->addMinutes($servico->duracao_em_minutos)->utc(), 'status' => 'confirmado'],

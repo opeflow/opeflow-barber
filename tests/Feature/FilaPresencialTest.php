@@ -1,6 +1,7 @@
 <?php
 
 use App\Enums\PapelDeUsuario;
+use App\Models\Agendamento;
 use App\Models\Atendimento;
 use App\Models\Barbearia;
 use App\Models\BeneficioDoCliente;
@@ -121,6 +122,12 @@ it('adiciona, chama e conclui o atendimento de um cliente presencial', function 
     $beneficioReemitido = app(EmissorDeBeneficio::class)->emitirParaAtendimentoConcluido(Atendimento::findOrFail($item->atendimento_id));
     expect($beneficioReemitido->id)->toBe($beneficioExistente->id)->and(BeneficioDoCliente::count())->toBe(1);
     $this->get('/clientes')->assertInertia(fn ($pagina) => $pagina->where('clientes.data.0.beneficios.0.servico', 'Pezinho'));
+    $this->get('/clientes/'.$this->cliente->id.'/beneficios')->assertOk()->assertInertia(fn ($pagina) => $pagina
+        ->component('Clientes/Beneficios')
+        ->where('cliente.nome', $this->cliente->nome)
+        ->where('beneficios.data.0.servico', 'Pezinho')
+        ->where('beneficios.data.0.servicoOrigem', 'Corte')
+        ->where('beneficios.data.0.status', 'agendado_para_disponibilidade'));
 
     $this->get('/financeiro')->assertOk()
         ->assertInertia(fn ($pagina) => $pagina
@@ -148,6 +155,56 @@ it('não permite inserir na fila um cliente de outra barbearia', function (): vo
     ])->assertSessionHasErrors('cliente_id');
 
     expect(ItemDaFila::query()->count())->toBe(0);
+});
+
+it('não revela histórico de benefícios de cliente de outra barbearia', function (): void {
+    $outraBarbearia = Barbearia::create(['nome' => 'Outra Barbearia', 'slug' => 'outra-barbearia-historico', 'fuso_horario' => 'UTC', 'ativa' => true]);
+    $clienteDeOutraBarbearia = Cliente::create(['barbearia_id' => $outraBarbearia->id, 'nome' => 'Cliente Externo', 'telefone' => '559999900003']);
+
+    $this->get('/clientes/'.$clienteDeOutraBarbearia->id.'/beneficios')->assertNotFound();
+});
+
+it('exibe ficha do cliente com próximo horário e histórico sem dados financeiros', function (): void {
+    $inicio = CarbonImmutable::now('UTC')->addDays(2);
+    Agendamento::create([
+        'barbearia_id' => $this->barbearia->id,
+        'cliente_id' => $this->cliente->id,
+        'profissional_id' => $this->profissional->id,
+        'servico_id' => $this->servico->id,
+        'inicio_em' => $inicio,
+        'fim_em' => $inicio->addMinutes(30),
+        'status' => 'confirmado',
+    ]);
+    $atendimento = Atendimento::create([
+        'barbearia_id' => $this->barbearia->id,
+        'cliente_id' => $this->cliente->id,
+        'profissional_id' => $this->profissional->id,
+        'servico_id' => $this->servico->id,
+        'iniciado_em' => CarbonImmutable::now('UTC')->subDays(2),
+        'concluido_em' => CarbonImmutable::now('UTC')->subDays(2)->addMinutes(30),
+        'valor_total' => 50,
+        'status' => 'concluido',
+    ]);
+
+    $this->get('/clientes/'.$this->cliente->id)->assertOk()->assertInertia(fn ($pagina) => $pagina
+        ->component('Clientes/Ficha')
+        ->where('cliente.nome', $this->cliente->nome)
+        ->where('proximoAgendamento.servico', 'Corte')
+        ->where('atendimentos.data.0.id', $atendimento->id)
+        ->missing('atendimentos.data.0.valor_total'));
+});
+
+it('não disponibiliza a ficha completa ao perfil de profissional', function (): void {
+    $usuarioProfissional = Usuario::create([
+        'barbearia_id' => $this->barbearia->id,
+        'profissional_id' => $this->profissional->id,
+        'nome' => 'Profissional da Equipe',
+        'email' => 'profissional-ficha@teste.local',
+        'senha' => 'senha-segura-de-teste',
+        'papel' => PapelDeUsuario::Profissional,
+        'ativo' => true,
+    ]);
+    $this->actingAs($usuarioProfissional)->get('/clientes/'.$this->cliente->id)->assertForbidden();
 });
 
 it('expira somente créditos disponíveis vencidos e preserva outros estados', function (): void {

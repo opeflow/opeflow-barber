@@ -24,6 +24,11 @@ enum PapelDeUsuario: string
         return in_array($this, [self::Proprietario, self::Gerente, self::Recepcao], true);
     }
 
+    public function podeEstornarPagamento(): bool
+    {
+        return in_array($this, [self::Proprietario, self::Gerente], true);
+    }
+
     public function podeGerenciarAtendimento(): bool
     {
         return $this !== self::Profissional;

@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Middleware\AdministracaoGlobalHabilitada;
+use App\Http\Middleware\ExigirMfaAdministrativo;
 use App\Http\Middleware\ManipularRequisicaoInertia;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -13,6 +15,10 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        $middleware->alias([
+            'administracao.global' => AdministracaoGlobalHabilitada::class,
+            'administracao.mfa' => ExigirMfaAdministrativo::class,
+        ]);
         $middleware->redirectGuestsTo(fn (Request $request): string => match (true) {
             $request->is('cliente/*') => '/cliente/entrar',
             $request->is('admin/*') => '/admin/entrar',

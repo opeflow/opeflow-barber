@@ -1,4 +1,4 @@
-const CACHE_DA_APLICACAO = 'opeflow-estatico-v1'
+const CACHE_DA_APLICACAO = 'opeflow-estatico-v2'
 const RECURSOS_ESTATICOS = ['/offline.html', '/manifest.webmanifest', '/icones/opeflow.svg']
 
 self.addEventListener('install', (evento) => {
@@ -26,6 +26,17 @@ self.addEventListener('fetch', (evento) => {
   }
 
   evento.respondWith(
-    caches.match(evento.request).then((respostaEmCache) => respostaEmCache || fetch(evento.request).catch(() => caches.match('/offline.html'))),
+    fetch(evento.request).then((resposta) => {
+      const requisicaoEstatica = evento.request.url.startsWith(self.location.origin)
+        && ['script', 'style', 'image', 'font'].includes(evento.request.destination)
+        && resposta.ok
+
+      if (requisicaoEstatica) {
+        const copia = resposta.clone()
+        caches.open(CACHE_DA_APLICACAO).then((cache) => cache.put(evento.request, copia))
+      }
+
+      return resposta
+    }).catch(() => caches.match(evento.request).then((respostaEmCache) => respostaEmCache || caches.match('/offline.html'))),
   )
 })

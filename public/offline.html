@@ -4,7 +4,9 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Sem conexão | Opeflow Barber</title>
-  <style>body{margin:0;display:grid;min-height:100vh;place-items:center;background:#f8fafc;color:#0f172a;font-family:system-ui,sans-serif}main{max-width:28rem;padding:2rem;text-align:center}h1{margin-bottom:.5rem}</style>
+  <style>body{margin:0;min-height:100vh;background:#f8fafc;color:#0f172a;font-family:system-ui,sans-serif}main{max-width:42rem;margin:auto;padding:2rem 1rem}h1{margin-bottom:.5rem}.aviso{padding:1rem;border:1px solid #f59e0b;border-radius:.75rem;background:#fffbeb}.item{margin-top:.75rem;padding:1rem;border:1px solid #cbd5e1;border-radius:.75rem;background:white}.muted{color:#64748b;font-size:.9rem}</style>
 </head>
-<body><main><h1>Sem conexão</h1><p>Verifique sua internet para atualizar agenda, fila e atendimentos.</p></main></body>
+<body><main><h1>Sem conexão</h1><p class="aviso">Ações que alteram horários, fila, atendimentos, mensagens ou financeiro exigem internet. O resumo abaixo é uma cópia local e pode estar desatualizado; não use para confirmar disponibilidade.</p><section id="resumo" aria-live="polite"></section><p class="muted">Reconecte-se para consultar dados atuais. O botão Sair no portal remove a cópia local deste dispositivo.</p></main><script>
+try{const dados=JSON.parse(localStorage.getItem('opeflow:portal-cliente:cache')||'null');const area=document.getElementById('resumo');if(dados){const titulo=document.createElement('h2');titulo.textContent='Última consulta do portal de '+dados.nome;area.append(titulo);const data=document.createElement('p');data.className='muted';data.textContent='Salva em '+new Date(dados.salvoEm).toLocaleString('pt-BR');area.append(data);for(const item of dados.agendamentos||[]){const cartao=document.createElement('article');cartao.className='item';const servico=document.createElement('strong');servico.textContent=item.servico+' · '+item.status.replaceAll('_',' ');const horario=document.createElement('p');horario.textContent=item.dataHora+' · '+item.barbearia+' · '+item.profissional;cartao.append(servico,horario);area.append(cartao)}}else{area.textContent='Nenhuma consulta do portal foi salva neste dispositivo.'}}catch{document.getElementById('resumo').textContent='Não foi possível ler o resumo offline.'}
+</script></body>
 </html>

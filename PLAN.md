@@ -2,7 +2,7 @@
 
 ## 1. Visão
 
-O Opeflow Barber será um SaaS de gestão para barbearias. O foco inicial é organizar agenda, atender clientes que chegam sem marcar horário, automatizar a comunicação pelo WhatsApp e oferecer controle financeiro prático.
+O Opeflow Barber será um SaaS de gestão para barbearias. O foco inicial é organizar agenda, atender clientes que chegam sem marcar horário, preparar lembretes para envio humano pelo WhatsApp e oferecer controle financeiro prático.
 
 O primeiro lançamento deve resolver a rotina da recepção e do barbeiro em poucos cliques. Funcionalidades de estoque, equipamentos, campanhas e inteligência operacional entram progressivamente, sem atrasar o MVP.
 
@@ -23,7 +23,7 @@ O primeiro lançamento deve resolver a rotina da recepção e do barbeiro em pou
 | Proprietário | Configura a barbearia, equipe, serviços, regras, financeiro e relatórios. |
 | Gerente/recepção | Gerencia agenda, fila, clientes, atendimentos e pagamentos. |
 | Profissional | Consulta a própria agenda, chama cliente, inicia e conclui atendimento. |
-| Cliente | Reserva pelo link público; consulta/cancelamento/reagendamento autenticados permanecem no roadmap. |
+| Cliente | Reserva pelo link público; portal com cadastro verificado, consulta/cancelamento/reagendamento dos próprios horários e redefinição segura de senha. |
 
 ## 4. Módulos e funcionalidades
 
@@ -111,8 +111,9 @@ Regras:
 - Registro de pagamentos em dinheiro, Pix, crédito, débito e outros.
 - Suporte a pagamento parcial e múltiplas formas de pagamento.
 - Despesas manuais categorizadas com chave de idempotência e trilha do usuário que lançou.
-- Resumo operacional diário de receitas, despesas e saldo líquido por fuso da barbearia (implementado inicialmente); fechamento de caixa e estornos auditáveis permanecem no roadmap.
-- Relatórios iniciais: receita por período, por serviço e por profissional; ticket médio; cancelamentos; faltas; exportação CSV.
+- Resumo operacional diário de recebimentos brutos, estornos, despesas e saldo líquido por fuso da barbearia; proprietário/gerente podem registrar estorno parcial idempotente com motivo, sem alterar o pagamento original. O estorno é somente um registro interno e não movimenta fundos externamente.
+- Relatórios iniciais: receita líquida por período, serviço e profissional; ticket médio; cancelamentos; faltas; exportação CSV com linhas explícitas de estorno.
+- Fechamento formal por data operacional com snapshot imutável/versionado, valor conferido, diferença, responsável e resumo por forma de pagamento. Reabertura exige motivo e registra responsável/horário; operações financeiras para aquela data são bloqueadas até nova versão do fechamento.
 
 ### 4.8 Lembretes e WhatsApp
 
@@ -259,7 +260,7 @@ O proprietário pode substituir a cor primária, a cor de navegação e a logo n
 | Início | resumo do dia, próximos atendimentos e fila atual em cartões | resumo, indicadores e atalhos com mais contexto simultâneo |
 | Agenda | agenda diária em lista cronológica; filtros recolhíveis | grade diária/semanal por profissional e painel de detalhes |
 | Fila | cartões com posição, previsão, serviço e ações diretas | painel de fila, previsão e disponibilidade por profissional |
-| Clientes | busca e cartões; histórico expansível | lista com filtros, painel lateral e histórico detalhado |
+| Clientes | busca e cartões; ficha acessível com próximo horário e histórico paginado | lista com filtros, painel lateral e histórico detalhado |
 | Financeiro | indicadores essenciais e lançamentos em lista | filtros, tabelas, comparativos e detalhamento por profissional/serviço |
 | Relatórios | um gráfico por vez, filtros compactos e exportação | grade de gráficos, filtros persistentes, tabelas e comparativos |
 
@@ -309,28 +310,29 @@ Limites do primeiro lançamento offline:
 
 ### Fase 0 — Fundação
 
-- **Em andamento:** estrutura Laravel/Inertia, Docker, dependências iniciais, entidades e migrações base de barbearia, usuários, profissionais, serviços, clientes, agendamentos e horários de trabalho; onboarding transacional de barbearia/proprietário, autenticação e perfis iniciais; cadastro operacional de serviços, profissionais e disponibilidade; primeiro cálculo de disponibilidade; shell visual; manifesto PWA, ícone e service worker de recursos estáticos.
+- **Fundação implementada:** estrutura Laravel/Inertia, Docker, entidades e migrações base; onboarding transacional; autenticação e perfis; cadastro operacional e cálculo inicial de disponibilidade; shell visual; manifesto PWA e service worker com cache de recursos estáticos. Consulta offline de dados está limitada ao último resumo do portal do cliente, com horário da cópia e aviso explícito de desatualização; demais dados operacionais não são armazenados offline.
 - **Agenda implementada inicialmente:** calendário diário, criação/cancelamento, validação transacional de disponibilidade, serviços filtrados por profissional e isolamento pela barbearia autenticada.
 - **Bloqueios pontuais de agenda:** proprietário/gerente pode cadastrar e remover períodos de folga/indisponibilidade por profissional; o cálculo compartilhado impede a oferta no agendamento público e conflitos com reservas existentes são rejeitados.
 - **Pausas recorrentes:** proprietário/gerente pode configurar intervalos dentro de cada turno semanal; a pausa é aplicada em todas as semanas e exclui o intervalo do cálculo público e interno. Pausas sobrepostas ou fora do turno são rejeitadas; calendário de feriados segue pendente.
-- **Clientes implementados inicialmente:** cadastro, busca e listagem paginada com isolamento por barbearia, necessário para iniciar agendamentos.
+- **Clientes implementados inicialmente:** cadastro, busca e listagem paginada com isolamento por barbearia; ficha com próximo agendamento, histórico paginado de reservas e atendimentos e acesso ao histórico de benefícios. A ficha omite valores e pagamentos e segue a mesma permissão de consulta de clientes.
 - **Fila presencial implementada inicialmente:** entrada de clientes sem horário, posição, previsão aproximada, chamada de profissional compatível e abertura/conclusão de atendimento; fluxo validado em teste integrado usando banco de testes isolado.
 - **Atendimento e financeiro implementados inicialmente:** pagamentos em entidade própria, recebimentos parciais e em formas combinadas (dinheiro, Pix, crédito, débito e outras), chave de idempotência por operação, limite ao saldo do atendimento e resumo diário por forma de pagamento com paginação; o formulário é acessível na fila durante o atendimento.
-- **Despesas e saldo diário:** registro categorizado de despesas com chave idempotente, usuário responsável e data/hora local convertida para UTC; resumo calcula recebimentos menos saídas e isola consulta por barbearia. Não há ainda edição, exclusão, estorno nem fechamento formal de caixa.
+- **Despesas, estornos e fechamento de caixa:** despesas categorizadas idempotentes; estornos auditáveis limitados ao saldo ainda não estornado, sem movimentar dinheiro externamente; fechamento gera snapshot imutável por versão, e reabertura exige motivo e responsável. Escritas financeiras bloqueiam a barbearia antes de validar períodos fechados.
 - **Relatórios iniciais:** resumo por intervalo de até um ano, no fuso da barbearia, com receitas, despesas, saldo operacional, ticket médio por atendimento pago, cancelamentos, faltas e receitas agrupadas por serviço/profissional; exportação CSV com proteção contra fórmulas em descrições. Comparações com períodos anteriores e gráficos avançados seguem pendentes.
-- **Benefício de retorno:** regra por barbearia, emissão idempotente ao concluir serviço originador, expiração horária, código de resgate assinado derivado sem armazenar segredo, validação de telefone/serviço/janela no agendamento público, reserva do crédito, liberação ao cancelar/faltar e consumo ao marcar atendido. Lembrete automático e extrato completo do histórico ainda pendentes.
+- **Benefício de retorno:** regra por barbearia, emissão idempotente ao concluir serviço originador, expiração horária, código de resgate assinado derivado sem armazenar segredo, validação de telefone/serviço/janela no agendamento público, reserva do crédito, liberação ao cancelar/faltar e consumo ao marcar atendido. A equipe pode consultar histórico paginado por cliente, com origem, validade, reserva e uso, sem editar créditos; lembrete automático ainda pendente.
 - **Identidade visual por barbearia implementada inicialmente:** upload/remover logo, cor primária e cor da navegação; menu e ações usam as cores da empresa autenticada, com texto de contraste automático, fallback da marca e separação por empresa.
 - **Experiência de uso refinada:** layout interno responsivo compartilhado com navegação lateral no desktop e inferior no celular, além de notificações toast acessíveis para sucesso, falhas e avisos.
 - **Equipe individual:** proprietários/gerentes podem gerar convites de uso único para gerente, recepção ou profissional; profissional pode ser vinculado a uma única conta. Convidado define senha própria e ativa o acesso. Acesso pode ser revogado/reativado; convite pendente expirado pode ser renovado. E-mail automático ainda depende da integração de envio.
 - **Permissões iniciais no servidor:** gerenciamento de equipe/configurações restrito a proprietário/gerente; resumo financeiro restrito a proprietário/gerente/recepção; profissional vê somente agenda e atendimentos da fila vinculados ao próprio cadastro, não consulta a lista de clientes nem gerencia agendamentos/fila. Pode iniciar/concluir seu atendimento e registrar pagamento apenas nele enquanto estiver em andamento. Matriz completa por tela/ação ainda precisa ser refinada.
-- **Guias de uso criados:** instruções para proprietário, equipe, clientes e logins de desenvolvimento em `docs/`, identificando o que já está disponível e o que ainda não foi lançado. A autenticação do portal de demonstração do cliente permite consulta somente leitura dos próprios agendamentos; cadastro, recuperação de senha, cancelamento e reagendamento continuam pendentes.
-- **Acessos de desenvolvimento:** `DesenvolvimentoSeeder` cria, de forma idempotente e somente em `local`/`testing`, logins de proprietário e profissional pela guarda de equipe, conta de cliente vinculada e administrador global isolado. O painel global é somente uma base de autenticação; logs, integrações e gestão de segredos continuam pendentes.
+- **Portal do cliente:** cadastro somente quando e-mail e barbearia correspondem a cadastro existente; autenticação após confirmação de e-mail. Recuperação de senha não revela existência de conta e usa token aleatório armazenado como hash, com validade de 60 minutos e uso único; segredo é enviado apenas no fragmento da URL e no corpo HTTPS. Consulta, cancelamento e reagendamento são limitados à conta; reagendamento mantém o histórico, revalida disponibilidade/benefício e atualiza lembretes. Requer configuração de e-mail.
+- **Painel administrativo global:** guarda separada, habilitação de produção desligada por padrão e condicionada a configuração explícita e MFA TOTP. Inclui códigos de recuperação de uso único, visão de saúde, eventos de auditoria estruturados com filtros/paginação e redação, e cadastro/mascaramento/rotação/revogação de credenciais cifradas. A tela de auditoria não lê arquivos brutos arbitrários; conectores ainda não são executados nem testados, e WhatsApp permanece fora do MVP.
 - A previsão inicial da fila é indicativa e distribuída pela duração dos itens ativos e pelo número de profissionais habilitados para o serviço; deve ser refinada com disponibilidade individual e reservas futuras.
 - Docker, Laravel, Vue/Inertia, PostgreSQL e Redis.
 - Ambiente integralmente conteinerizado, inclusive instalação de dependências PHP/Node, execução do Vite, worker Horizon e agendador Laravel. PostgreSQL e Redis operam somente na rede interna dos containers.
 - Autenticação, barbearia, usuários e perfis.
 - Layout base, permissões e auditoria essencial.
 - Manifesto PWA, ícones, instalação pelo navegador e cache de recursos estáticos.
+- Resumo do portal do cliente em armazenamento local para leitura offline, com aviso de desatualização e limpeza no logout; telas da equipe ainda mostram orientação offline sem cachear respostas autenticadas.
 
 ### Fase 1 — MVP operacional
 
@@ -343,16 +345,16 @@ Limites do primeiro lançamento offline:
 - Identidade visual personalizável por barbearia, shell de navegação responsivo e feedback toast acessível.
 - Guias operacionais separados por público e atualizados junto a alterações de rotas, permissões e fluxos.
 
-**Ainda pendente nesta fase:** matriz completa de permissões por função, recuperação de senha, cadastro público de conta do cliente, cancelamento e reagendamento pelo portal. A agenda individual básica do profissional foi implementada como consulta dos próprios horários; conta demo do cliente oferece apenas consulta dos próprios agendamentos.
+**Ainda pendente nesta fase:** cobertura de autorização automatizada por rota/ação em toda a matriz. O reagendamento do cliente está disponível no portal para horários futuros, mantendo serviço/profissional, validando conflito e benefício em transação, preservando histórico por vínculo entre registros e atualizando lembretes pendentes. O profissional consulta agenda e fila vinculadas ao próprio perfil; acesso à ficha completa de clientes é vedado. Cadastro, verificação e redefinição de senha do cliente estão implementados; configure SMTP.
 
-**Escopo já entregue nesta fase:** registro de múltiplos pagamentos por atendimento, despesas categorizadas, resumo diário e relatórios iniciais por período/profissional/serviço. Ainda faltam fechamento de caixa, estornos auditáveis e comparações analíticas avançadas.
+**Escopo já entregue nesta fase:** registro de múltiplos pagamentos por atendimento, despesas categorizadas, estornos parciais auditáveis, fechamento/reabertura versionados, resumo diário líquido e relatórios iniciais por período/profissional/serviço. Ainda faltam comparações analíticas avançadas.
 
-### Fase 2 — Automação e fidelização
+### Fase 2 — Melhorias de automação e fidelização (após estabilizar o MVP)
 
-- Integração oficial do WhatsApp.
-- Confirmação e lembretes automáticos.
-- Regras de benefício, incluindo pezinho grátis.
-- Indicadores básicos e exportação de dados.
+- A integração oficial do WhatsApp permanece fora do escopo autorizado; qualquer proposta futura exige decisão explícita, templates aprovados, opt-in e auditoria.
+- Melhorias no envio manual de lembretes e acompanhamento operacional, sem alegar entrega automática.
+- Regras e resgate de benefícios de retorno já implementados; ampliar configurações após validação com barbearias.
+- Comparações analíticas e gráficos acessíveis nos relatórios.
 
 ### Fase 3 — Gestão ampliada
 
@@ -396,27 +398,27 @@ Esses itens devem ser reavaliados após validar a rotina de agendamento, fila e 
 
 ## Painel administrativo global da plataforma
 
-Além do painel de cada barbearia, o SaaS terá uma área `/admin` separada, destinada exclusivamente a administradores da plataforma e ao suporte operacional. A fundação de autenticação da conta global e a tela inicial de desenvolvimento foram criadas; o acesso ainda é bloqueado fora de `local`/`testing` e não representa o painel operacional completo.
+Além do painel de cada barbearia, o SaaS tem uma área `/admin` separada, destinada exclusivamente a administradores da plataforma e ao suporte operacional. A habilitação de produção continua desligada por padrão; requer `ADMINISTRACAO_GLOBAL_HABILITADA=true`, administrador individual ativo e MFA TOTP configurado. O primeiro administrador pode ser provisionado pelo comando interativo `administracao:criar-administrador`, sem senha em argumento. A primeira autenticação configura o MFA, gera códigos de recuperação de uso único e somente então libera as telas protegidas.
 
 ### Funcionalidades
 
-- **Visão geral e saúde:** estado de aplicação, banco, Redis, workers e agendador; jobs pendentes/falhos; armazenamento e ocorrências recentes.
-- **Logs e auditoria:** pesquisa paginada e filtrável por nível, serviço, período e identificador de requisição; eventos administrativos auditáveis. Dados pessoais e segredos devem ser redigidos. Não haverá console de comandos, SQL ou leitura arbitrária de arquivos.
-- **Integrações:** cadastro e estado de WhatsApp, armazenamento S3, pagamentos e conectores futuros; exibir última verificação, resultado e falhas relevantes.
-- **Chaves e tokens:** cadastrar, testar, rotacionar e revogar credenciais. Armazenar cifras no servidor, mostrar somente provedor, rótulo, estado e valor mascarado; nunca retornar o segredo gravado à interface. Auditar cada alteração sem incluir o segredo.
-- **Configurações globais:** parâmetros operacionais não secretos, limites e controles de funcionalidades, protegidos por permissões e trilha de alterações.
+- **Visão geral e saúde (entrega inicial):** estado de banco e Redis, quantidade de jobs falhos e indicadores agregados de barbearias/equipe/agendamentos. Workers, agendador, armazenamento e alertas operacionais continuam pendentes.
+- **Logs e auditoria:** pesquisa paginada e filtrável por nível, serviço, período e identificador de requisição sobre eventos administrativos estruturados; descrição e metadados permitidos são redigidos. Não haverá console de comandos, SQL ou leitura arbitrária de arquivos de log.
+- **Integrações:** cadastro, estado, rotação e revogação de credenciais para WhatsApp, armazenamento S3 e pagamentos. Nesta entrega, as credenciais são armazenadas com cifra Laravel, exibidas somente mascaradas e auditadas; conectividade/teste real permanece futura até existir conector.
+- **Chaves e tokens (entrega inicial):** cadastrar, rotacionar e revogar credenciais. Armazenar cifra no servidor, mostrar somente provedor, rótulo, estado e valor mascarado; nunca retornar o segredo gravado à interface. Auditar cada alteração sem incluir o segredo. Teste de conectividade depende do conector real e está pendente.
+- **Configurações globais:** parâmetros operacionais não secretos, limites e controles de funcionalidades, protegidos por permissões e trilha de alterações; pendente.
 - **Alertas:** fila parada, falhas repetidas, serviço indisponível ou integração desconectada, sem expor conteúdo sensível.
 
 ### Segurança e entidades
 
-O acesso administrativo é global, não pertence a uma barbearia e não deve herdar nem aceitar `barbearia_id` da sessão da equipe. Usa guarda e tabela próprias para autenticação demo, proteção CSRF e limitação de tentativas; o painel e o login são restritos a `local`/`testing` até haver autenticação reforçada, auditoria e autorização global de produção. Segredos usam criptografia em repouso do Laravel; em produção, preferir cofre de segredos gerenciado.
+O acesso administrativo é global, não pertence a uma barbearia e não herda nem aceita `barbearia_id` da sessão da equipe. Usa guarda/tabela próprias, proteção CSRF e limitação de tentativas. Em produção, a rota responde como inexistente por padrão e só habilita com a flag explícita; as telas requerem MFA TOTP confirmado. Segredos ficam cifrados com a chave Laravel; em produção, preferir cofre gerenciado e armazenar a chave da aplicação em serviço de segredos.
 
-Entidades: `AdministradorDaPlataforma` (guard/tabela de autenticação demo implementados), `IntegracaoDaPlataforma`, `CredencialDeIntegracao` e `EventoDeAuditoria` (itens futuros). Segredos e dados pessoais devem ser excluídos de logs, exceções, dumps e dados de teste.
+Entidades: `AdministradorDaPlataforma`, `IntegracaoDaPlataforma`, `EventoDeAuditoria` e códigos de recuperação administrativos. Códigos de recuperação são salvos com hash e exibidos uma vez. Segredos e dados pessoais devem ser excluídos de logs, exceções, dumps e dados de teste. Consulte [guia do administrador da plataforma](./docs/guia-administrador-plataforma.md) antes de operar o painel.
 
 ### Critérios de aceite
 
 1. Usuário de barbearia não acessa rotas administrativas globais.
-2. Administrador consulta saúde e logs redigidos com filtros e paginação.
-3. Credenciais podem ser cadastradas, verificadas, rotacionadas e revogadas sem revelar um segredo já salvo.
+2. Administrador com MFA consulta saúde e eventos de auditoria redigidos com filtros e paginação.
+3. Credenciais podem ser cadastradas, rotacionadas e revogadas; ficam cifradas e nunca são devolvidas em texto puro.
 4. Alterações administrativas geram auditoria sem valores secretos.
-5. Alertas de serviços e integrações não expõem dados confidenciais.
+5. (Roadmap) Alertas de serviços e integrações não expõem dados confidenciais; alertas operacionais ainda não foram implementados.

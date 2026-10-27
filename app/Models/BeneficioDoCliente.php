@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Models\Concerns\PertenceABarbearia;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class BeneficioDoCliente extends Model
 {
@@ -27,5 +28,15 @@ class BeneficioDoCliente extends Model
     public function regra(): BelongsTo
     {
         return $this->belongsTo(RegraDeBeneficio::class, 'regra_de_beneficio_id');
+    }
+
+    public function atendimentoOrigem(): BelongsTo
+    {
+        return $this->belongsTo(Atendimento::class, 'atendimento_origem_id');
+    }
+
+    public function agendamentos(): HasMany
+    {
+        return $this->hasMany(Agendamento::class, 'beneficio_do_cliente_id');
     }
 }

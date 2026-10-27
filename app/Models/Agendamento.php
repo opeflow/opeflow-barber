@@ -14,6 +14,7 @@ class Agendamento extends Model
 
     protected $fillable = [
         'barbearia_id', 'cliente_id', 'profissional_id', 'servico_id',
+        'agendamento_origem_id',
         'inicio_em', 'fim_em', 'status', 'observacoes',
         'chave_idempotencia_publica',
         'beneficio_do_cliente_id',
@@ -34,6 +35,11 @@ class Agendamento extends Model
         $this->update(['status' => 'cancelado']);
     }
 
+    public function marcarComoReagendado(): void
+    {
+        $this->update(['status' => 'reagendado']);
+    }
+
     public function cliente(): BelongsTo
     {
         return $this->belongsTo(Cliente::class);
@@ -52,5 +58,10 @@ class Agendamento extends Model
     public function beneficio(): BelongsTo
     {
         return $this->belongsTo(BeneficioDoCliente::class, 'beneficio_do_cliente_id');
+    }
+
+    public function agendamentoOrigem(): BelongsTo
+    {
+        return $this->belongsTo(self::class, 'agendamento_origem_id');
     }
 }

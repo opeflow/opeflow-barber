@@ -38,11 +38,12 @@ function cadastrar() { formulario.post('/clientes', { onSuccess: () => { formula
 
     <section v-if="clientes.data.length" class="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
       <article v-for="cliente in clientes.data" :key="cliente.id" class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-        <h2 class="font-semibold text-slate-950">{{ cliente.nome }}</h2>
+        <h2 class="font-semibold text-slate-950"><Link :href="`/clientes/${cliente.id}`" class="hover:text-blue-700 hover:underline">{{ cliente.nome }}</Link></h2>
         <a class="mt-1 block text-sm text-blue-700" :href="`tel:${cliente.telefone}`">{{ cliente.telefone }}</a>
         <p v-if="cliente.email" class="mt-1 truncate text-sm text-slate-500">{{ cliente.email }}</p>
         <div class="mt-3 flex items-center justify-between gap-2 border-t border-slate-100 pt-3"><span class="text-xs" :class="cliente.aceita_lembretes ? 'text-green-700' : 'text-slate-500'">{{ cliente.aceita_lembretes ? 'Aceita lembretes' : 'Sem consentimento para lembretes' }}</span><button v-if="cliente.aceita_lembretes" type="button" class="text-xs font-semibold text-red-700 underline" @click="router.post(`/clientes/${cliente.id}/retirar-consentimento`, {}, { preserveScroll: true })">Retirar consentimento</button></div>
         <div v-if="cliente.beneficios?.length" class="mt-3 rounded-lg bg-blue-50 p-3"><p class="text-xs font-semibold uppercase tracking-wide text-blue-800">Benefícios</p><div v-for="beneficio in cliente.beneficios.slice(0, 2)" :key="beneficio.id" class="mt-2 text-sm text-blue-900"><p>{{ beneficio.servico ?? 'Serviço grátis' }} · {{ beneficio.status === 'disponivel' ? 'Disponível' : beneficio.status === 'expirado' ? 'Expirado' : beneficio.status === 'agendado_para_disponibilidade' ? `Disponível em ${beneficio.disponivelEm}` : beneficio.status }} · até {{ beneficio.expiraEm }}</p><p v-if="beneficio.status === 'disponivel' || beneficio.status === 'agendado_para_disponibilidade'" class="mt-1 font-mono text-xs">Código: {{ beneficio.codigoDeResgate }}</p></div></div>
+        <Link :href="`/clientes/${cliente.id}/beneficios`" class="mt-3 inline-flex min-h-10 items-center font-semibold text-blue-700 underline">Histórico de benefícios</Link>
         <p v-if="cliente.observacoes" class="mt-3 border-t border-slate-100 pt-3 text-sm text-slate-600">{{ cliente.observacoes }}</p>
       </article>
     </section>

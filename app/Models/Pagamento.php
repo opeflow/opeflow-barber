@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Models\Concerns\PertenceABarbearia;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Pagamento extends Model
 {
@@ -22,5 +23,10 @@ class Pagamento extends Model
     public function atendimento(): BelongsTo
     {
         return $this->belongsTo(Atendimento::class);
+    }
+
+    public function estornos(): HasMany
+    {
+        return $this->hasMany(EstornoDePagamento::class);
     }
 }
