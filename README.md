@@ -1,4 +1,4 @@
-# Opeflow Barber
+# <img width="50" height="50" alt="opeflowbarber" src="https://github.com/user-attachments/assets/2d2c5df8-e35f-43b5-a9c2-3d303248293b" /> Opeflow Barber
 
 Sistema de gestão para barbearias, desenvolvido com Laravel, Vue/Inertia, PostgreSQL e Redis.
 
